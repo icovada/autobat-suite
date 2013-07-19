@@ -8,23 +8,16 @@ import sqlite3
 import csv
 import string
 
-# if len(sys.argv) <= 2:
-# 	print("##### ERRORE #####")
-# 	print("Formato comando:")
-# 	print("./aBAT Export_Phones Export_Users")
-# 	exit()
-
 def regexp(expr, item):
 	reg = re.compile(expr, flags=re.IGNORECASE)
 	return reg.search(item) is not None
 
 def asciify(string):
-    ''' Returns the string without non ASCII characters'''
+    # Returns the string without non ASCII characters
     stripped = (c for c in string if 0 < ord(c) < 127)
     return ''.join(stripped)
 
 conn = sqlite3.connect(':memory:')
-#conn = sqlite3.connect('database.db')
 conn.create_function("REGEXP", 2, regexp)
 c = conn.cursor()
 c.execute('CREATE TABLE users (FirstName TEXT, LastName TEXT, UserID TEXT)')
@@ -32,12 +25,12 @@ c.execute('CREATE TABLE phones (DeviceName TEXT, Description TEXT, DeviceType TE
 c.execute('CREATE TABLE nophones (DeviceName TEXT, Description TEXT, DeviceType TEXT, DirectoryNumber TEXT)')
 conn.commit()
 
-print("Importazione file")
+print("Importing files")
 
 with open("input/Export_Phones", encoding="utf-8") as csvfile:
 	reader = csv.reader(csvfile)
 	for row in reader:
-		if len(re.findall('SEP', row[0])) == 1:   #Carica solo i telefoni VoIP Cisco
+		if len(re.findall('SEP', row[0])) == 1:   #Only load phones, exclude CTI ports etc
 			c.execute('INSERT INTO phones values (?,?,?,?)',(row[0], row[1], row[36],row[130]))
 
 with open("input/Export_Users", encoding="utf-8") as csvfile:
@@ -49,90 +42,81 @@ c.execute('INSERT INTO nophones SELECT * FROM phones')
 
 conn.commit()
 
-#Apertura file output
+#AOpen output files
 userupdate = open("output/Update_Users.txt", "w")
-phoneupdateNC = open("output/Update_Phones_NC.txt", "w")
-phoneupdateCN = open("output/Update_Phones_CN.txt", "w")
+phoneupdateFL = open("output/Update_Phones_FL.txt", "w")
+phoneupdateLF = open("output/Update_Phones_LF.txt", "w")
 
 userupdate.write("USER ID, CONTROLLED DEVICE 1\n")
-phoneupdateNC.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
-phoneupdateCN.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
+phoneupdateFL.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
+phoneupdateLF.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
 
-#Spara tutti gli utenti
+#Get all users ordered by last name
 c.execute('SELECT * FROM users ORDER BY LastName')
 result= c.fetchall()
 
 counter=0
-troppi=0
+many=0
 total=len(result)
 
 for row in result:
 	counter = counter + 1
 	if counter/100 == int(counter/100):
-		print("Elaborazione", counter, "di", total)
+		print("Processing", counter, "out of", total)
 
 	query = "SELECT * FROM phones WHERE "
-	nomi = str(row[0] + ' ' + row[1]).split() #Unisci nome e cognome, dividi singole parole
+	names = str(row[0] + ' ' + row[1]).split() #Unisci nome e cognome, dividi singole parole
 
-	for i in nomi:
-		query = query + "Description REGEXP '" + i.replace('\'','') + "' AND " #Crea array di len(arr) REGEX, togli gli apostrofi
+	for i in names:
+		query = query + "Description REGEXP '" + i.replace('\'','') + "' AND " #Create array of len(arr) REGEX, sanitize and drop apostrophes
 
-	query = query[:-5] #Togli l'ultimo AND
+	query = query[:-5] #delete last AND
 
 	c.execute(query)
-	risultati=c.fetchall()
+	results=c.fetchall()
 
-	if len(risultati) == 1:
+	if len(results) == 1:
 
 		SEP = str(row[2])
-		Description = str(risultati[0][0])
+		Description = str(results[0][0])
 		MAC = Description[3:]
 		FirstName = str(row[0]).title()
 		LastName = str(row[1]).title()
-		LineNumber = str(risultati[0][3])
-		NC = FirstName +" "+ LastName
-		CN = LastName +" "+ FirstName
+		LineNumber = str(results[0][3])
+		FL = FirstName +" "+ LastName
+		LF = LastName +" "+ FirstName
 
-		riga = SEP +","+ Description +"\n"    #RossiM,SEP12345
+		line = SEP +","+ Description +"\n"    #JonesM,SEP12345
 		    #Mac Address,  Description, Dir Num 1, LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1
-		nomeCog = MAC +","+ NC +","+ LineNumber+","+  NC		    +","+	NC         +","+   asciify(NC)      +","+  NC        +","+  asciify(NC)     +","+  NC  +","+  asciify(NC)+"\n"
-		cogNome = MAC +","+ CN +","+ LineNumber+","+  CN		    +","+	CN         +","+   asciify(CN)      +","+  CN        +","+  asciify(CN)     +","+  CN  +","+  asciify(CN)+"\n"
-#		cogNome = MAC +","+ CN +","+ LineNumber+","			"\n"
+		firstLast = MAC +","+ FL +","+ LineNumber+","+  FL		    +","+	FL         +","+   asciify(FL)      +","+  FL        +","+  asciify(FL)     +","+  FL  +","+  asciify(FL)+"\n"
+		lastFirst = MAC +","+ LF +","+ LineNumber+","+  LF		    +","+	LF         +","+   asciify(LF)      +","+  LF        +","+  asciify(LF)     +","+  LF  +","+  asciify(LF)+"\n"
 
-		userupdate.write(riga)
-		phoneupdateNC.write(nomeCog)
-		phoneupdateCN.write(cogNome)
+		userupdate.write(line)
+		phoneupdateFL.write(firstLast)
+		phoneupdateLF.write(lastFirst)
 
-		query = "DELETE FROM nophones WHERE DeviceName == '"+str(risultati[0][0])+"'"
+		query = "DELETE FROM nophones WHERE DeviceName == '"+str(results[0][0])+"'"
 		c.execute(query)
 
-	elif len(risultati) > 1:
-		troppi = troppi + 1
+	elif len(results) > 1:  #If the user has more than one phone
+		many = many + 1
 
 for i in c.execute('SELECT DISTINCT DeviceType FROM nophones').fetchall():
-	telvuoti = open("output/Vuoto_"+i[0].replace(' ','_')+".txt","w")
-	telvuoti.write("USER ID, CONTROLLED DEVICE 1\n")
+	emptyphone = open("output/Empty_"+i[0].replace(' ','_')+".txt","w")
+	emptyphone.write("USER ID, CONTROLLED DEVICE 1\n")
 
 	query = 'SELECT Description, DeviceName FROM nophones WHERE DeviceType == \''+i[0]+'\' ORDER BY Description'
 	c.execute(query)
 	result=c.fetchall()
 
 	for row in result:
-		telvuoti.write(row[0] + "," + row[1].title())
-		telvuoti.write("\n")
+		emptyphone.write(row[0] + "," + row[1].title())
+		emptyphone.write("\n")
 
-	telvuoti.close()
+	emptyphone.close()
 
 conn.commit()
 conn.close()
 userupdate.close()
-phoneupdateNC.close()
-phoneupdateCN.close()
-
-# somma = uno+troppi
-# print("Zero= ", zero, "Uno: ", uno, "Di piu: ", troppi)
-# print(somma)
-
-# for telefono in risultati:
-# 	query = "DELETE FROM nophones WHERE DeviceName == "+str(telefono[0])
-# 	c.execute(query)
+phoneupdateFL.close()
+phoneupdateLF.close()
