@@ -97,7 +97,7 @@ for row in userdump:
 		phoneupdateFL.write(firstLast)
 		phoneupdateLF.write(lastFirst)
 
-		query = "DELETE FROM nophones WHERE DeviceName == '"+str(userdump[0][0])+"'" #If a phone is found, delete it from the nophones table
+		query = "DELETE FROM nophones WHERE DeviceName == '"+str(phonedump[0][0])+"'" #If a phone is found, delete it from the nophones table
 		c.execute(query)															#so that only unmatched phones remain
 
 	elif len(phonedump) > 1:  #If the user has more than one phone
@@ -119,7 +119,7 @@ for i in c.execute('SELECT DISTINCT DeviceType FROM nophones').fetchall():  # Cr
 	result=c.fetchall()
 
 	for row in result:
-		emptyphone.write(row[0].title() + "," + row[1].title())
+		emptyphone.write(row[0].title() + "," + row[1])
 		emptyphone.write("\n")
 
 	emptyphone.close()
