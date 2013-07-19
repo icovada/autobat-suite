@@ -1,0 +1,20 @@
+Questo programma associa telefoni agli utenti.
+
+I telefoni devono avere nella description il nome ed il cognome del loro utente.
+
+#######################
+
+Istruzioni:
+1) Fare un export completo di utenti e telefoni.
+
+2) Inserirli nella cartella "input", chiamandoli "Export_Users" e "Export_Phones"
+
+3) eseguire lo script
+
+#######################
+
+Testato su CUCM 9.1.1, dovrebbe funzionare sia avanti che indietro.
+Nessuna garanzia di funzionamento.
+Ricontrollate sempre a mano la validità dei file.
+
+In bocca al lupo.
