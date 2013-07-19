@@ -38,53 +38,55 @@ with open("input/Export_Users", encoding="utf-8") as csvfile:
 	for row in reader:
 		c.execute('INSERT INTO users values (?,?,?)',(row[0], row[2], row[3]))
 
-c.execute('INSERT INTO nophones SELECT * FROM phones')
+c.execute('INSERT INTO nophones SELECT * FROM phones') #Copy phones table to nophones
 
 conn.commit()
 
-#AOpen output files
-userupdate = open("output/Update_Users.txt", "w")
-phoneupdateFL = open("output/Update_Phones_FL.txt", "w")
-phoneupdateLF = open("output/Update_Phones_LF.txt", "w")
+#Open output files
+userupdate = 	open("output/Update_Users.txt", "w")
+phoneupdateFL = open("output/Update_Phones_FL.txt", "w")	# Update phone descriptions with FirstName LastName
+phoneupdateLF = open("output/Update_Phones_LF.txt", "w")	# or LastName FirstName
+multiple = 		open("output/Multiple_Phones.txt","w")
 
+#Write CSV headers
 userupdate.write("USER ID, CONTROLLED DEVICE 1\n")
 phoneupdateFL.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
 phoneupdateLF.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
 
 #Get all users ordered by last name
 c.execute('SELECT * FROM users ORDER BY LastName')
-result= c.fetchall()
+userdump = c.fetchall()
 
 counter=0
-many=0
-total=len(result)
+total=len(userdump)
 
-for row in result:
+for row in userdump:
 	counter = counter + 1
 	if counter/100 == int(counter/100):
 		print("Processing", counter, "out of", total)
 
 	query = "SELECT * FROM phones WHERE "
-	names = str(row[0] + ' ' + row[1]).split() #Unisci nome e cognome, dividi singole parole
+	names = str(row[0] + ' ' + row[1]).split() #Merge first and last name, then split at every space ['Anne', 'Mary', 'Von', 'Munchausen']
 
 	for i in names:
-		query = query + "Description REGEXP '" + i.replace('\'','') + "' AND " #Create array of len(arr) REGEX, sanitize and drop apostrophes
+		query = query + "Description REGEXP '" + i.replace('\'','') + "' AND " #Create query of len(arr) REGEX, sanitize and drop apostrophes
 
 	query = query[:-5] #delete last AND
 
 	c.execute(query)
-	results=c.fetchall()
+	phonedump=c.fetchall()
 
-	if len(results) == 1:
-
+	if len(phonedump) > 0:
 		SEP = str(row[2])
-		Description = str(results[0][0])
+		Description = str(phonedump[0][0])
 		MAC = Description[3:]
 		FirstName = str(row[0]).title()
 		LastName = str(row[1]).title()
-		LineNumber = str(results[0][3])
+		LineNumber = str(phonedump[0][3])
 		FL = FirstName +" "+ LastName
 		LF = LastName +" "+ FirstName
+
+	if len(phonedump) == 1:
 
 		line = SEP +","+ Description +"\n"    #JonesM,SEP12345
 		    #Mac Address,  Description, Dir Num 1, LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1
@@ -95,14 +97,21 @@ for row in result:
 		phoneupdateFL.write(firstLast)
 		phoneupdateLF.write(lastFirst)
 
-		query = "DELETE FROM nophones WHERE DeviceName == '"+str(results[0][0])+"'"
-		c.execute(query)
+		query = "DELETE FROM nophones WHERE DeviceName == '"+str(userdump[0][0])+"'" #If a phone is found, delete it from the nophones table
+		c.execute(query)															#so that only unmatched phones remain
 
-	elif len(results) > 1:  #If the user has more than one phone
-		many = many + 1
+	elif len(phonedump) > 1:  #If the user has more than one phone
+		multiple.write("   " + FirstName + LastName+"\n")
+		
+		for i in phonedump:
+			line = str(i)+"\n"
+			multiple.write(line)
 
-for i in c.execute('SELECT DISTINCT DeviceType FROM nophones').fetchall():
-	emptyphone = open("output/Empty_"+i[0].replace(' ','_')+".txt","w")
+		multiple.write("\n")
+
+
+for i in c.execute('SELECT DISTINCT DeviceType FROM nophones').fetchall():  # Create lists of unmatched phones divided
+	emptyphone = open("output/Empty_"+i[0].replace(' ','_')+".txt","w")		# per phone model
 	emptyphone.write("USER ID, CONTROLLED DEVICE 1\n")
 
 	query = 'SELECT Description, DeviceName FROM nophones WHERE DeviceType == \''+i[0]+'\' ORDER BY Description'
@@ -110,7 +119,7 @@ for i in c.execute('SELECT DISTINCT DeviceType FROM nophones').fetchall():
 	result=c.fetchall()
 
 	for row in result:
-		emptyphone.write(row[0] + "," + row[1].title())
+		emptyphone.write(row[0].title() + "," + row[1].title())
 		emptyphone.write("\n")
 
 	emptyphone.close()
@@ -120,3 +129,4 @@ conn.close()
 userupdate.close()
 phoneupdateFL.close()
 phoneupdateLF.close()
+multiple.close()
