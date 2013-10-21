@@ -30,7 +30,7 @@ print("Importing files")
 with open("input/Export_Phones", encoding="utf-8") as csvfile:
 	reader = csv.DictReader(csvfile)
 	for row in reader:
-		#if len(re.findall('SEP', row[0])) == 1:   #Only load phones, exclude CTI ports etc
+		if len(re.findall('SEP', row['Device Name'])) == 1:   #Only load phones, exclude CTI ports etc
 			c.execute('INSERT INTO phones values (?,?,?,?,?)',(row['Device Name'], row['Description'], row['Device Type'],row['Directory Number 1'],row['Route Partition 1']))
 
 with open("input/Export_Users", encoding="utf-8") as csvfile:
