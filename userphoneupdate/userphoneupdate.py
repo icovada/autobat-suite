@@ -21,8 +21,8 @@ conn = sqlite3.connect(':memory:')
 conn.create_function("REGEXP", 2, regexp)
 c = conn.cursor()
 c.execute('CREATE TABLE users (FirstName TEXT, LastName TEXT, UserID TEXT)')
-c.execute('CREATE TABLE phones (DeviceName TEXT, Description TEXT, DeviceType TEXT, DirectoryNumber TEXT)')
-c.execute('CREATE TABLE nophones (DeviceName TEXT, Description TEXT, DeviceType TEXT, DirectoryNumber TEXT)')
+c.execute('CREATE TABLE phones (DeviceName TEXT, Description TEXT, DeviceType TEXT, DirectoryNumber TEXT, Partition TEXT')
+c.execute('CREATE TABLE nophones (DeviceName TEXT, Description TEXT, DeviceType TEXT, DirectoryNumber TEXT, Partition TEXT)')
 conn.commit()
 
 print("Importing files")
@@ -31,7 +31,7 @@ with open("input/Export_Phones", encoding="utf-8") as csvfile:
 	reader = csv.reader(csvfile)
 	for row in reader:
 		if len(re.findall('SEP', row[0])) == 1:   #Only load phones, exclude CTI ports etc
-			c.execute('INSERT INTO phones values (?,?,?,?)',(row[0], row[1], row[36],row[130]))
+			c.execute('INSERT INTO phones values (?,?,?,?)',(row[0], row[1], row[36],row[130],row[131]))
 
 with open("input/Export_Users", encoding="utf-8") as csvfile:
 	reader = csv.reader(csvfile)
