@@ -20,9 +20,9 @@ def asciify(string):
 conn = sqlite3.connect(':memory:')
 conn.create_function("REGEXP", 2, regexp)
 c = conn.cursor()
-c.execute('CREATE TABLE users (FirstName TEXT, LastName TEXT, UserID TEXT)')
-c.execute('CREATE TABLE phones (DeviceName TEXT, Description TEXT, DeviceType TEXT, DirectoryNumber TEXT, Partition TEXT)')
-c.execute('CREATE TABLE nophones (DeviceName TEXT, Description TEXT, DeviceType TEXT, DirectoryNumber TEXT, Partition TEXT)')
+c.execute('CREATE TABLE users (firstName TEXT, lastName TEXT, UserID TEXT)')
+c.execute('CREATE TABLE phones (deviceName TEXT, description TEXT, deviceType TEXT, directoryNumber TEXT, partition TEXT)')
+c.execute('CREATE TABLE nophones (deviceName TEXT, description TEXT, deviceType TEXT, directoryNumber TEXT, partition TEXT)')
 conn.commit()
 
 print("Importing files")
@@ -45,18 +45,18 @@ conn.commit()
 #Open output files
 userdevice = 	open("output/Update_User_devices.txt", "w")
 userline = 		open("output/Update_User_lines.txt","w")
-phoneupdateFL = open("output/Update_Phones_FL.txt", "w")	# Update phone descriptions with FirstName LastName
-phoneupdateLF = open("output/Update_Phones_LF.txt", "w")	# or LastName FirstName
+phoneupdateFL = open("output/Update_Phones_FL.txt", "w")	# Update phone descriptions with firstName lastName
+phoneupdateLF = open("output/Update_Phones_LF.txt", "w")	# or lastName firstName
 multiple = 		open("output/Multiple_Phones.txt","w")
 
 #Write CSV headers
 userdevice.write("USER ID, CONTROLLED DEVICE 1\n")
-userline.write("User ID,Device,Directory Number,Partition")
-phoneupdateFL.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
-phoneupdateLF.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
+userline.write("User ID,Device,Directory Number,partition")
+phoneupdateFL.write("MAC ADDRESS,description,DIRECTORY NUMBER  1,LINE description  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
+phoneupdateLF.write("MAC ADDRESS,description,DIRECTORY NUMBER  1,LINE description  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
 
 #Get all users ordered by last name
-c.execute('SELECT * FROM users ORDER BY LastName')
+c.execute('SELECT * FROM users ORDER BY lastName')
 userdump = c.fetchall()
 
 counter=0
@@ -71,7 +71,7 @@ for row in userdump:
 	names = str(row[0] + ' ' + row[1]).split() #Merge first and last name, then split at every space ['Anne', 'Mary', 'Von', 'Munchausen']
 
 	for i in names:
-		query = query + "Description REGEXP '" + i.replace('\'','') + "' AND " #Create query of len(arr) REGEX, sanitize and drop apostrophes
+		query = query + "description REGEXP '" + i.replace('\'','') + "' AND " #Create query of len(arr) REGEX, sanitize and drop apostrophes
 
 	query = query[:-5] #delete last AND
 
@@ -79,35 +79,35 @@ for row in userdump:
 	phonedump=c.fetchall()
 
 	if len(phonedump) > 0:
-		UID = str(row[2])
-		Description = str(phonedump[0][0])
-		MAC = Description[3:]
-		FirstName = str(row[0]).title()
-		LastName = str(row[1]).title()
-		LineNumber = str(phonedump[0][3])
+		uid = str(row[2])
+		description = str(phonedump[0][0])
+		MAC = description[3:]
+		firstName = str(row[0]).title()
+		lastName = str(row[1]).title()
+		lineNumber = str(phonedump[0][3])
 		partition = str(phonedump[0][4])
-		FL = FirstName +" "+ LastName
-		LF = LastName +" "+ FirstName
+		FL = firstName +" "+ lastName
+		LF = lastName +" "+ firstName
 
 	if len(phonedump) == 1:
 
-		device = UID +","+ Description +"\n"    #JonesM,SEP12345
-		line = UID +","+ Description +","+ LineNumber +","+ partition +"\n"#User ID,Device,Directory Number,Partition
+		device = uid +","+ description +"\n"    #JonesM,SEP12345
+		line = uid +","+ description +","+ lineNumber +","+ partition +"\n"#User ID,Device,Directory Number,partition
 		
-		    #Mac Address,  Description, Dir Num 1, LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1
-		firstLast = MAC +","+ FL +","+ LineNumber+","+  FL		    +","+	FL         +","+   asciify(FL)      +","+  FL        +","+  asciify(FL)     +","+  FL  +","+  asciify(FL)+"\n"
-		lastFirst = MAC +","+ LF +","+ LineNumber+","+  LF		    +","+	LF         +","+   asciify(LF)      +","+  LF        +","+  asciify(LF)     +","+  LF  +","+  asciify(LF)+"\n"
+		    #Mac Address,  description, Dir Num 1, LINE description  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1
+		firstLast = MAC +","+ FL +","+ lineNumber+","+  FL		    +","+	FL         +","+   asciify(FL)      +","+  FL        +","+  asciify(FL)     +","+  FL  +","+  asciify(FL)+"\n"
+		lastFirst = MAC +","+ LF +","+ lineNumber+","+  LF		    +","+	LF         +","+   asciify(LF)      +","+  LF        +","+  asciify(LF)     +","+  LF  +","+  asciify(LF)+"\n"
 
 		userdevice.write(device)
 		userline.write(line)
 		phoneupdateFL.write(firstLast)
 		phoneupdateLF.write(lastFirst)
 
-		query = "DELETE FROM nophones WHERE DeviceName == '"+str(phonedump[0][0])+"'" #If a phone is found, delete it from the nophones table
+		query = "DELETE FROM nophones WHERE deviceName == '"+str(phonedump[0][0])+"'" #If a phone is found, delete it from the nophones table
 		c.execute(query)															#so that only unmatched phones remain
 
 	elif len(phonedump) > 1:  #If the user has more than one phone
-		multiple.write("   " + FirstName + LastName+"\n")
+		multiple.write("   " + firstName + lastName+"\n")
 		
 		for i in phonedump:
 			line = str(i)+"\n"
@@ -116,11 +116,11 @@ for row in userdump:
 		multiple.write("\n")
 
 
-for i in c.execute('SELECT DISTINCT DeviceType FROM nophones').fetchall():  # Create lists of unmatched phones divided
+for i in c.execute('SELECT DISTINCT deviceType FROM nophones').fetchall():  # Create lists of unmatched phones divided
 	emptyphone = open("output/Empty_"+i[0].replace(' ','_')+".txt","w")		# per phone model
 	emptyphone.write("USER ID, CONTROLLED DEVICE 1\n")
 
-	query = 'SELECT Description, DeviceName FROM nophones WHERE DeviceType == \''+i[0]+'\' ORDER BY Description'
+	query = 'SELECT description, deviceName FROM nophones WHERE deviceType == \''+i[0]+'\' ORDER BY description'
 	c.execute(query)
 	result=c.fetchall()
 
