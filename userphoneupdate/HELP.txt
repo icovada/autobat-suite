@@ -15,3 +15,7 @@ Instructions:
 
 Tested on CUCM 9.1.1, should be both back- and forward-compatible
 Always check manually the validity of exported files and correlations before batch updating on the server.
+
+Load the "Update_User_devices.txt" as Users/Update Users/Custom File
+
+Load the "Update_User_lines.txt" as Users/Line Appeareance/Update Line Appeareance
