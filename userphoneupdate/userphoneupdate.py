@@ -30,7 +30,8 @@ print("Importing files")
 with open("input/Export_Phones", encoding="utf-8") as csvfile:
 	reader = csv.DictReader(csvfile)
 	for row in reader:
-		c.execute('INSERT INTO phones values (?,?,?,?,?)',(row['Device Name'], row['Description'], row['Device Type'],row['Directory Number 1'],row['Route Partition 1']))
+		#if len(re.findall('SEP', row[0])) == 1:   #Only load phones, exclude CTI ports etc
+			c.execute('INSERT INTO phones values (?,?,?,?,?)',(row['Device Name'], row['Description'], row['Device Type'],row['Directory Number 1'],row['Route Partition 1']))
 
 with open("input/Export_Users", encoding="utf-8") as csvfile:
 	reader = csv.reader(csvfile)
@@ -42,13 +43,15 @@ c.execute('INSERT INTO nophones SELECT * FROM phones') #Copy phones table to nop
 conn.commit()
 
 #Open output files
-userupdate = 	open("output/Update_Users.txt", "w")
+userdevice = 	open("output/Update_User_devices.txt", "w")
+userline = 		open("output/Update_User_lines.txt","w")
 phoneupdateFL = open("output/Update_Phones_FL.txt", "w")	# Update phone descriptions with FirstName LastName
 phoneupdateLF = open("output/Update_Phones_LF.txt", "w")	# or LastName FirstName
 multiple = 		open("output/Multiple_Phones.txt","w")
 
 #Write CSV headers
-userupdate.write("USER ID, CONTROLLED DEVICE 1\n")
+userdevice.write("USER ID, CONTROLLED DEVICE 1\n")
+userline.write("User ID,Device,Directory Number,Partition")
 phoneupdateFL.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
 phoneupdateLF.write("MAC ADDRESS,DESCRIPTION,DIRECTORY NUMBER  1,LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1\n")
 
@@ -76,23 +79,27 @@ for row in userdump:
 	phonedump=c.fetchall()
 
 	if len(phonedump) > 0:
-		SEP = str(row[2])
+		UID = str(row[2])
 		Description = str(phonedump[0][0])
 		MAC = Description[3:]
 		FirstName = str(row[0]).title()
 		LastName = str(row[1]).title()
 		LineNumber = str(phonedump[0][3])
+		partition = str(phonedump[0][4])
 		FL = FirstName +" "+ LastName
 		LF = LastName +" "+ FirstName
 
 	if len(phonedump) == 1:
 
-		line = SEP +","+ Description +"\n"    #JonesM,SEP12345
+		device = UID +","+ Description +"\n"    #JonesM,SEP12345
+		line = UID +","+ Description +","+ LineNumber +","+ partition +"\n"#User ID,Device,Directory Number,Partition
+		
 		    #Mac Address,  Description, Dir Num 1, LINE DESCRIPTION  1,LINE TEXT LABEL  1,ASCII LINE TEXT LABEL  1,ALERTING NAME  1,ASCII ALERTING NAME  1,DISPLAY  1,ASCII DISPLAY  1
 		firstLast = MAC +","+ FL +","+ LineNumber+","+  FL		    +","+	FL         +","+   asciify(FL)      +","+  FL        +","+  asciify(FL)     +","+  FL  +","+  asciify(FL)+"\n"
 		lastFirst = MAC +","+ LF +","+ LineNumber+","+  LF		    +","+	LF         +","+   asciify(LF)      +","+  LF        +","+  asciify(LF)     +","+  LF  +","+  asciify(LF)+"\n"
 
-		userupdate.write(line)
+		userdevice.write(device)
+		userline.write(line)
 		phoneupdateFL.write(firstLast)
 		phoneupdateLF.write(lastFirst)
 
@@ -125,7 +132,8 @@ for i in c.execute('SELECT DISTINCT DeviceType FROM nophones').fetchall():  # Cr
 
 conn.commit()
 conn.close()
-userupdate.close()
+userdevice.close()
+userline.close()
 phoneupdateFL.close()
 phoneupdateLF.close()
 multiple.close()
